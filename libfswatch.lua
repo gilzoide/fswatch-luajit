@@ -2,6 +2,7 @@ local ffi = require 'ffi'
 local bit = require 'bit'
 
 ffi.cdef[[
+// TODO: check compatibility and possibly define time_t conditionally based on OS
 typedef int32_t time_t;
 
 static const int FSW_OK =                            0;         /**< The call was successful. */
@@ -45,9 +46,9 @@ enum fsw_event_flag {
 extern enum fsw_event_flag FSW_ALL_EVENT_FLAGS[15];
 
 FSW_STATUS fsw_get_event_flag_by_name(const char *name, enum fsw_event_flag *flag);
-char *fsw_get_event_flag_name(const enum fsw_event_flag flag);
+const char *fsw_get_event_flag_name(const enum fsw_event_flag flag);
 typedef struct fsw_cevent {
-    char * path;
+    const char * path;
     time_t evt_time;
     enum fsw_event_flag * flags;
     unsigned int flags_num;
@@ -61,7 +62,7 @@ enum fsw_filter_type {
 };
 
 typedef struct fsw_cmonitor_filter {
-    char * text;
+    const char * text;
     enum fsw_filter_type type;
     bool case_sensitive;
     bool extended;

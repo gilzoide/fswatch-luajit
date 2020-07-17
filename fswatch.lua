@@ -41,9 +41,49 @@ fsw_event_flag = create_enum_options(
 
 fsw_monitor_type = create_enum('system_default', 'fsevents', 'kqueue', 'inotify', 'windows', 'poll', 'fen')
 
+local events_array_wrapper = {}
+
+function events_array_wrapper.new(events_array, event_num)
+    return setmetatable({
+        events = events_array,
+        n = event_num,
+    }, events_array_wrapper)
+end
+
+function events_array_wrapper:__index(index)
+    if type(index) == 'number' and index >= 1 and index <= self.n then
+        return self.events[index - 1]
+    end
+    return events_array_wrapper[index]
+end
+
+function events_array_wrapper.pack_flags(flags_array, flags_num)
+    local result = {}
+    for i = 0, flags_num - 1 do
+        local name = fsw_event_flag[tonumber(flags_array[i])]
+        result[name] = true
+        result[i + 1] = name
+    end
+    return result
+end
+
+function events_array_wrapper:iter()
+    return coroutine.wrap(function()
+        for i = 0, self.n - 1 do
+            local event = self.events[i]
+            coroutine.yield(ffi.string(event.path), event.evt_time, events_array_wrapper.pack_flags(event.flags, event.flags_num))
+        end
+    end)
+end
+
+-- @warning LuaJIT without Lua 5.2 compatibility will not call this method
+function events_array_wrapper:__len()
+    return self.n
+end
+
 local function wrap_lua_callback(callback)
     return function(events, event_num, data)
-        return callback(events, event_num)
+        return callback(events_array_wrapper.new(events, event_num), event_num)
     end
 end
 
