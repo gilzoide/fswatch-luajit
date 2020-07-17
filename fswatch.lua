@@ -102,6 +102,8 @@ local function wrap_FSW_STATUS_returns(f)
     end
 end
 
+local fsw_cmonitor_filter = ffi.typeof('fsw_cmonitor_filter')
+
 local FSW = {
     STATUS = FSW_STATUS,
     event_flag = fsw_event_flag,
@@ -123,7 +125,13 @@ local FSW = {
     set_directory_only = wrap_FSW_STATUS_returns(libfswatch.fsw_set_directory_only),
     set_follow_symlinks = wrap_FSW_STATUS_returns(libfswatch.fsw_set_follow_symlinks),
     add_event_type_filter = wrap_FSW_STATUS_returns(libfswatch.fsw_add_event_type_filter),
-    add_filter = wrap_FSW_STATUS_returns(libfswatch.fsw_add_filter),
+    add_filter = function(session, cmonitor_filter, ...)
+        if not ffi.istype(fsw_cmonitor_filter, cmonitor_filter) and type(cmonitor_filter) ~= 'table' then
+            cmonitor_filter = fsw_cmonitor_filter(cmonitor_filter, ...)
+        end
+        local status = libfswatch.fsw_add_filter(session, cmonitor_filter)
+        return FSW_STATUS_to_lua_returns(status)
+    end,
     start_monitor = wrap_FSW_STATUS_returns(libfswatch.fsw_start_monitor),
     stop_monitor = wrap_FSW_STATUS_returns(libfswatch.fsw_stop_monitor),
     is_running = libfswatch.fsw_is_running,
